@@ -1,6 +1,29 @@
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
+
+#include <math.h>
+#include <fstream>
+#include <map>
+#include <string>
+#include <vector>
+
+#include "load3DModel.h"
+#include "shaders.h"
+
+
+// the global Assimp scene object
+const aiScene* scene = NULL;
+
+// scale factor for the model to fit in the window
+float scaleFactor;
+
+// Replace the model name by your model's filename
+static const std::string modelname = "pkkelkar.obj";
+
 void mouseWheel(int wheel, int direction, int x, int y)
 {
 
@@ -31,17 +54,27 @@ void renderScene(void)
 
 }
 
+int init()
+{
+	if (!Import3DFromFile(modelname))
+		return 0;
+
+	scene = getScene();
+	scaleFactor = getScaleFactor();
+	return 1; // true
+}
+
 int main(int argc, char **argv)
 {
 	// GLUT initialization
 	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH | GLUT_MULTISAMPLE);
 
 	glutInitContextVersion (3, 3);
 	glutInitContextFlags (GLUT_COMPATIBILITY_PROFILE );
 
 	glutInitWindowSize(900, 700);
-	glutCreateWindow("IITK Library");
+	glutCreateWindow("P K Keklkar Library");
 
 	//  Callback Registration
 	glutDisplayFunc(renderScene);
