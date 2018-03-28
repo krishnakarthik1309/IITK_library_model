@@ -1,3 +1,9 @@
+// include DevIL for image loading
+#include <IL/il.h>
+
+#include <GL/glew.h>
+#include <GL/freeglut.h>
+
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
@@ -13,10 +19,15 @@
 Assimp::Importer importer;
 
 // the global Assimp scene object
-const aiScene* sceneModel = NULL;
+const aiScene* scene = NULL;
 
 // scale factor for the model to fit in the window
-float scaleFactorModel;
+float scaleFactor;
+
+// images / texture
+// map image filenames to textureIds
+// pointer to texture Array
+std::map<std::string, GLuint> textureIdMap;
 
 #define aisgl_min(x,y) (x<y?x:y)
 #define aisgl_max(x,y) (y>x?y:x)
@@ -30,7 +41,7 @@ void get_bounding_box_for_node (const aiNode* nd,
 	unsigned int n = 0, t;
 
 	for (; n < nd->mNumMeshes; ++n) {
-		const aiMesh* mesh = sceneModel->mMeshes[nd->mMeshes[n]];
+		const aiMesh* mesh = scene->mMeshes[nd->mMeshes[n]];
 		for (t = 0; t < mesh->mNumVertices; ++t) {
 
 			aiVector3D tmp = mesh->mVertices[t];
@@ -55,7 +66,7 @@ void get_bounding_box (aiVector3D* min, aiVector3D* max)
 
 	min->x = min->y = min->z =  1e10f;
 	max->x = max->y = max->z = -1e10f;
-	get_bounding_box_for_node(sceneModel->mRootNode,min,max);
+	get_bounding_box_for_node(scene->mRootNode,min,max);
 }
 
 bool Import3DFromFile( const std::string& pFile)
@@ -71,10 +82,10 @@ bool Import3DFromFile( const std::string& pFile)
 		return false;
 	}
 
-	sceneModel = importer.ReadFile( pFile, aiProcessPreset_TargetRealtime_Quality);
+	scene = importer.ReadFile( pFile, aiProcessPreset_TargetRealtime_Quality);
 
 	// If the import failed, report it
-	if( !sceneModel)
+	if( !scene)
 	{
 		printf("%s\n", importer.GetErrorString());
 		return false;
@@ -89,16 +100,82 @@ bool Import3DFromFile( const std::string& pFile)
 	tmp = scene_max.x-scene_min.x;
 	tmp = scene_max.y - scene_min.y > tmp?scene_max.y - scene_min.y:tmp;
 	tmp = scene_max.z - scene_min.z > tmp?scene_max.z - scene_min.z:tmp;
-	scaleFactorModel = 1.f / tmp;
+	scaleFactor = 1.f / tmp;
 
 	// We're done. Everything will be cleaned up by the importer destructor
 	return true;
 }
 
-const aiScene* getScene() {
-	return sceneModel;
-}
+int LoadGLTextures(const aiScene* scene)
+{
+	ILboolean success;
 
-float getScaleFactor() {
-	return scaleFactorModel;
+	/* initialization of DevIL */
+	ilInit();
+
+	/* scan scene's materials for textures */
+	for (unsigned int m=0; m<scene->mNumMaterials; ++m)
+	{
+		int texIndex = 0;
+		aiString path;	// filename
+
+		aiReturn texFound = scene->mMaterials[m]->GetTexture(aiTextureType_DIFFUSE, texIndex, &path);
+		while (texFound == AI_SUCCESS) {
+			//fill map with textures, OpenGL image ids set to 0
+			textureIdMap[path.data] = 0;
+			// more textures?
+			texIndex++;
+			texFound = scene->mMaterials[m]->GetTexture(aiTextureType_DIFFUSE, texIndex, &path);
+		}
+	}
+
+	int numTextures = textureIdMap.size();
+
+	/* create and fill array with DevIL texture ids */
+	ILuint* imageIds = new ILuint[numTextures];
+	ilGenImages(numTextures, imageIds);
+
+	/* create and fill array with GL texture ids */
+	GLuint* textureIds = new GLuint[numTextures];
+	glGenTextures(numTextures, textureIds); /* Texture name generation */
+
+	/* get iterator */
+	std::map<std::string, GLuint>::iterator itr = textureIdMap.begin();
+	int i=0;
+	for (; itr != textureIdMap.end(); ++i, ++itr)
+	{
+		//save IL image ID
+		std::string filename = (*itr).first;  // get filename
+		(*itr).second = textureIds[i];	  // save texture id for filename in map
+
+		ilBindImage(imageIds[i]); /* Binding of DevIL image name */
+		ilEnable(IL_ORIGIN_SET);
+		ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
+		success = ilLoadImage((ILstring)filename.c_str());
+
+		if (success) {
+			/* Convert image to RGBA */
+			ilConvertImage(IL_RGBA, IL_UNSIGNED_BYTE);
+
+			/* Create and load textures to OpenGL */
+			glBindTexture(GL_TEXTURE_2D, textureIds[i]);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ilGetInteger(IL_IMAGE_WIDTH),
+				ilGetInteger(IL_IMAGE_HEIGHT), 0, GL_RGBA, GL_UNSIGNED_BYTE,
+				ilGetData());
+		}
+		else
+			printf("Couldn't load Image: %s\n", filename.c_str());
+	}
+	/* Because we have already copied image data into texture data
+	we can release memory used by image. */
+	ilDeleteImages(numTextures, imageIds);
+
+	//Cleanup
+	delete [] imageIds;
+	delete [] textureIds;
+
+	//return success;
+	return true;
 }
