@@ -36,12 +36,6 @@ struct MyMaterial{
 	int texCount;
 };
 
-// Model Matrix (part of the OpenGL Model View Matrix)
-float modelMatrix[16];
-
-// For push and pop matrix
-std::vector<float *> matrixStack;
-
 // Frame counting and FPS computation
 long mytime,timebase = 0,frame = 0;
 char s[32];
@@ -49,77 +43,12 @@ char s[32];
 // Replace the model name by your model's filename
 static const std::string modelname = "src/model/first.obj";
 
-// Uniform Buffer for Matrices
-// this buffer will contain 3 matrices: projection, view and model
-// each matrix is a float array with 16 components
-GLuint matricesUniBuffer;
 #define MatricesUniBufferSize sizeof(float) * 16 * 3
 #define ProjMatrixOffset 0
 #define ViewMatrixOffset sizeof(float) * 16
 #define ModelMatrixOffset sizeof(float) * 16 * 2
 #define MatrixSize sizeof(float) * 16
 
-
-void pushMatrix() {
-
-	float *aux = (float *)malloc(sizeof(float) * 16);
-	memcpy(aux, modelMatrix, sizeof(float) * 16);
-	matrixStack.push_back(aux);
-}
-
-void popMatrix() {
-
-	float *m = matrixStack[matrixStack.size()-1];
-	memcpy(modelMatrix, m, sizeof(float) * 16);
-	matrixStack.pop_back();
-	free(m);
-}
-
-void setModelMatrix()
-{
-	glBindBuffer(GL_UNIFORM_BUFFER, matricesUniBuffer);
-	glBufferSubData(GL_UNIFORM_BUFFER,
-			ModelMatrixOffset, MatrixSize, modelMatrix);
-	glBindBuffer(GL_UNIFORM_BUFFER, 0);
-}
-
-void scale(float x, float y, float z)
-{
-    float aux[16];
-
-    setScaleMatrix(aux,x,y,z);
-    multMatrix(modelMatrix,aux);
-    setModelMatrix();
-}
-
-// The equivalent to glRotate applied to the model matrix
-void rotate(float angle, float x, float y, float z)
-{
-    float aux[16];
-
-    setRotationMatrix(aux,angle,x,y,z);
-    multMatrix(modelMatrix,aux);
-    setModelMatrix();
-}
-
-void buildProjectionMatrix(float fov, float ratio, float nearp, float farp)
-{
-	float projMatrix[16];
-	float f = 1.0f / tan (fov * (M_PI / 360.0f));
-
-	setIdentityMatrix(projMatrix,4);
-
-	projMatrix[0] = f / ratio;
-	projMatrix[1 * 4 + 1] = f;
-	projMatrix[2 * 4 + 2] = (farp + nearp) / (nearp - farp);
-	projMatrix[3 * 4 + 2] = (2.0f * farp * nearp) / (nearp - farp);
-	projMatrix[2 * 4 + 3] = -1.0f;
-	projMatrix[3 * 4 + 3] = 0.0f;
-
-	glBindBuffer(GL_UNIFORM_BUFFER, matricesUniBuffer);
-	glBufferSubData(GL_UNIFORM_BUFFER, ProjMatrixOffset, MatrixSize, projMatrix);
-	glBindBuffer(GL_UNIFORM_BUFFER, 0);
-}
 
 void changeSize(int w, int h)
 {
@@ -135,7 +64,6 @@ void changeSize(int w, int h)
 	ratio = (1.0f * w) / h;
 	buildProjectionMatrix(53.13f, ratio, 0.1f, 100.0f);
 }
-
 
 void setCamera(float posX, float posY, float posZ,
 		float lookAtX, float lookAtY, float lookAtZ) {
