@@ -15,6 +15,7 @@
 #include "shaders.h"
 #include "generateBuffers.h"
 #include "matrixUtils.h"
+#include "mouseAndKeyboard.h"
 
 
 struct MyMesh{
@@ -41,16 +42,6 @@ float modelMatrix[16];
 // For push and pop matrix
 std::vector<float *> matrixStack;
 
-// Camera Position
-float camX = 0, camY = 0, camZ = 5;
-
-// Mouse Tracking Variables
-int startX, startY, tracking = 0;
-
-// Camera Spherical Coordinates
-float alpha = 0.0f, beta = 0.0f;
-float r = 5.0f;
-
 // Frame counting and FPS computation
 long mytime,timebase = 0,frame = 0;
 char s[32];
@@ -68,25 +59,6 @@ GLuint matricesUniBuffer;
 #define ModelMatrixOffset sizeof(float) * 16 * 2
 #define MatrixSize sizeof(float) * 16
 
-void mouseWheel(int wheel, int direction, int x, int y)
-{
-
-}
-
-void processMouseMotion(int xx, int yy)
-{
-
-}
-
-void processMouseButtons(int button, int state, int xx, int yy)
-{
-
-}
-
-void processKeys(unsigned char key, int xx, int yy)
-{
-
-}
 
 void pushMatrix() {
 
