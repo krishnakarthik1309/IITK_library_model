@@ -19,7 +19,7 @@
 Assimp::Importer importer;
 
 // the global Assimp scene object
-const aiScene* scene = NULL;
+const aiScene* scenee = NULL;
 
 // scale factor for the model to fit in the window
 float scaleFactor;
@@ -32,7 +32,7 @@ std::map<std::string, GLuint> textureIdMap;
 #define aisgl_min(x,y) (x<y?x:y)
 #define aisgl_max(x,y) (y>x?y:x)
 
-void get_bounding_box_for_node (const aiNode* nd,
+void get_bounding_box_for_node (const aiScene* myScene, const aiNode* nd,
 	aiVector3D* min,
 	aiVector3D* max)
 
@@ -41,7 +41,7 @@ void get_bounding_box_for_node (const aiNode* nd,
 	unsigned int n = 0, t;
 
 	for (; n < nd->mNumMeshes; ++n) {
-		const aiMesh* mesh = scene->mMeshes[nd->mMeshes[n]];
+		const aiMesh* mesh = myScene->mMeshes[nd->mMeshes[n]];
 		for (t = 0; t < mesh->mNumVertices; ++t) {
 
 			aiVector3D tmp = mesh->mVertices[t];
@@ -57,20 +57,22 @@ void get_bounding_box_for_node (const aiNode* nd,
 	}
 
 	for (n = 0; n < nd->mNumChildren; ++n) {
-		get_bounding_box_for_node(nd->mChildren[n],min,max);
+		get_bounding_box_for_node(myScene, nd->mChildren[n],min,max);
 	}
 }
 
-void get_bounding_box (aiVector3D* min, aiVector3D* max)
+void get_bounding_box (const aiScene* myScene, aiVector3D* min, aiVector3D* max)
 {
 
 	min->x = min->y = min->z =  1e10f;
 	max->x = max->y = max->z = -1e10f;
-	get_bounding_box_for_node(scene->mRootNode,min,max);
+	get_bounding_box_for_node(myScene, myScene->mRootNode,min,max);
 }
 
-bool Import3DFromFile( const std::string& pFile)
+const aiScene* Import3DFromFile( const std::string& pFile)
 {
+	const aiScene* myScene = NULL;
+	printf("HELLO\n");
 	//check if file exists
 	std::ifstream fin(pFile.c_str());
 	if(!fin.fail()) {
@@ -79,23 +81,25 @@ bool Import3DFromFile( const std::string& pFile)
 	else{
 		printf("Couldn't open file: %s\n", pFile.c_str());
 		printf("%s\n", importer.GetErrorString());
-		return false;
+		return NULL;
 	}
 
-	scene = importer.ReadFile( pFile, aiProcessPreset_TargetRealtime_Quality);
+	myScene = importer.ReadFile( pFile, aiProcessPreset_TargetRealtime_Quality);
 
 	// If the import failed, report it
-	if( !scene)
+	if( !myScene)
 	{
+		printf("myScene is not NULL\n");
 		printf("%s\n", importer.GetErrorString());
-		return false;
+		return NULL;
 	}
 
 	// Now we can access the file's contents.
 	printf("Import of scene %s succeeded.\n",pFile.c_str());
 
 	aiVector3D scene_min, scene_max, scene_center;
-	get_bounding_box(&scene_min, &scene_max);
+	printf("ACHA\n");
+	get_bounding_box(myScene, &scene_min, &scene_max);
 	float tmp;
 	tmp = scene_max.x-scene_min.x;
 	tmp = scene_max.y - scene_min.y > tmp?scene_max.y - scene_min.y:tmp;
@@ -103,29 +107,33 @@ bool Import3DFromFile( const std::string& pFile)
 	scaleFactor = 1.f / tmp;
 
 	// We're done. Everything will be cleaned up by the importer destructor
-	return true;
+	return myScene;
 }
 
-int LoadGLTextures(const aiScene* scene)
+int LoadGLTextures(const aiScene* myScene)
 {
+	printf("hola\n");
 	ILboolean success;
 
 	/* initialization of DevIL */
 	ilInit();
-
+	if (!myScene) {
+		printf("OH no myScene is null\n");
+	}
 	/* scan scene's materials for textures */
-	for (unsigned int m=0; m<scene->mNumMaterials; ++m)
+	for (unsigned int m=0; m<myScene->mNumMaterials; ++m)
 	{
+	printf("OBVI\n");
 		int texIndex = 0;
 		aiString path;	// filename
 
-		aiReturn texFound = scene->mMaterials[m]->GetTexture(aiTextureType_DIFFUSE, texIndex, &path);
+		aiReturn texFound = myScene->mMaterials[m]->GetTexture(aiTextureType_DIFFUSE, texIndex, &path);
 		while (texFound == AI_SUCCESS) {
 			//fill map with textures, OpenGL image ids set to 0
 			textureIdMap[path.data] = 0;
 			// more textures?
 			texIndex++;
-			texFound = scene->mMaterials[m]->GetTexture(aiTextureType_DIFFUSE, texIndex, &path);
+			texFound = myScene->mMaterials[m]->GetTexture(aiTextureType_DIFFUSE, texIndex, &path);
 		}
 	}
 
@@ -176,6 +184,7 @@ int LoadGLTextures(const aiScene* scene)
 	delete [] imageIds;
 	delete [] textureIds;
 
+	printf("BELA\n");
 	//return success;
 	return true;
 }

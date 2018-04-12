@@ -1,6 +1,6 @@
-extern const aiScene* scene;
+extern const aiScene* scenee;
 extern float scaleFactor;
 extern std::map<std::string, GLuint> textureIdMap;
 
-bool Import3DFromFile( const std::string& pFile);
+const aiScene* Import3DFromFile( const std::string& pFile);
 int LoadGLTextures(const aiScene* scene);

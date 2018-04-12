@@ -40,8 +40,11 @@ struct MyMaterial{
 long mytime,timebase = 0,frame = 0;
 char s[32];
 
+const aiScene* myScene = NULL;
+
 // Replace the model name by your model's filename
-static const std::string modelname = "src/model/first.obj";
+static const std::string modelname1 = "src/model/final_steps_temp.obj";
+static const std::string modelname2 = "src/model/final_steps.obj";
 
 #define MatricesUniBufferSize sizeof(float) * 16 * 3
 #define ProjMatrixOffset 0
@@ -176,7 +179,7 @@ void renderScene(void)
 	// so we have set this uniform separately
 	glUniform1i(texUnit, 0);
 
-	recursive_render(scene, scene->mRootNode);
+	recursive_render(myScene, myScene->mRootNode);
 
 	// FPS computation and display
 	frame++;
@@ -192,12 +195,14 @@ void renderScene(void)
 	glutSwapBuffers();
 }
 
-int init()
+int init(std::string modelname)
 {
-	if (!Import3DFromFile(modelname))
+	myScene = Import3DFromFile(modelname);
+	if (!myScene)
 		return 0;
 
-	LoadGLTextures(scene);
+	printf("hehe\n");
+	LoadGLTextures(myScene);
 
 	glGetUniformBlockIndex = (PFNGLGETUNIFORMBLOCKINDEXPROC) glutGetProcAddress("glGetUniformBlockIndex");
 	glUniformBlockBinding = (PFNGLUNIFORMBLOCKBINDINGPROC) glutGetProcAddress("glUniformBlockBinding");
@@ -207,7 +212,7 @@ int init()
 	glDeleteVertexArrays = (PFNGLDELETEVERTEXARRAYSPROC) glutGetProcAddress("glDeleteVertexArrays");
 
 	program = setupShaders((char *) "src/shaders/vertexShader.glsl", (char *) "src/shaders/fragmentShader.glsl");
-	genVAOsAndUniformBuffer(scene, textureIdMap);
+	genVAOsAndUniformBuffer(myScene, textureIdMap);
 
 	glEnable(GL_DEPTH_TEST);
 	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
@@ -259,7 +264,7 @@ int main(int argc, char **argv)
 	}
 
 	//  Init the app (load model and textures) and OpenGL
-	if (!init())
+	if (!init(modelname1))
 		printf("Could not Load the Model\n");
 
 	// version info
