@@ -41,10 +41,11 @@ long mytime,timebase = 0,frame = 0;
 char s[32];
 
 const aiScene* myScene = NULL;
+const aiScene* myScene2 = NULL;
 
 // Replace the model name by your model's filename
-static const std::string modelname1 = "src/model/final_steps_temp.obj";
-static const std::string modelname2 = "src/model/final_steps.obj";
+static const std::string modelname2 = "src/model/final_steps_temp.obj";
+static const std::string modelname1 = "src/model/final_steps.obj";
 
 #define MatricesUniBufferSize sizeof(float) * 16 * 3
 #define ProjMatrixOffset 0
@@ -165,6 +166,7 @@ void renderScene(void)
 	// set the model matrix to the identity Matrix
 	setIdentityMatrix(modelMatrix, 4);
 
+	// TODO: set scaleFactor for each scene
 	// sets the model matrix to a scale matrix so that the model fits in the window
 	scale(scaleFactor, scaleFactor, scaleFactor);
 
@@ -180,6 +182,7 @@ void renderScene(void)
 	glUniform1i(texUnit, 0);
 
 	recursive_render(myScene, myScene->mRootNode);
+	recursive_render(myScene2, myScene2->mRootNode);
 
 	// FPS computation and display
 	frame++;
@@ -197,7 +200,7 @@ void renderScene(void)
 
 int init(std::string modelname)
 {
-	myScene = Import3DFromFile(modelname);
+	myScene = Import3DFromFile(modelname1);
 	if (!myScene)
 		return 0;
 
@@ -213,6 +216,11 @@ int init(std::string modelname)
 
 	program = setupShaders((char *) "src/shaders/vertexShader.glsl", (char *) "src/shaders/fragmentShader.glsl");
 	genVAOsAndUniformBuffer(myScene, textureIdMap);
+
+	myScene2 = Import3DFromFile(modelname2);
+	if (!myScene2)
+		return 0;
+	genVAOsAndUniformBuffer(myScene2, textureIdMap);
 
 	glEnable(GL_DEPTH_TEST);
 	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);

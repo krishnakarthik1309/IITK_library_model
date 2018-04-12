@@ -18,9 +18,6 @@
 // Create an instance of the Importer class
 Assimp::Importer importer;
 
-// the global Assimp scene object
-const aiScene* scenee = NULL;
-
 // scale factor for the model to fit in the window
 float scaleFactor;
 

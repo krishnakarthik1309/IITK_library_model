@@ -1,4 +1,3 @@
-extern const aiScene* scenee;
 extern float scaleFactor;
 extern std::map<std::string, GLuint> textureIdMap;
 
