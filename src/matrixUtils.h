@@ -15,3 +15,4 @@ void setModelMatrix();
 void scale(float x, float y, float z);
 void rotate(float angle, float x, float y, float z);
 void buildProjectionMatrix(float fov, float ratio, float nearp, float farp);
+void translate(float x, float y, float z);

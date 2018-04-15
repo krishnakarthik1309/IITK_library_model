@@ -146,6 +146,16 @@ void setModelMatrix()
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
+// The equivalent to glTranslate applied to the model matrix
+void translate(float x, float y, float z) {
+
+    float aux[16];
+
+    setTranslationMatrix(aux,x,y,z);
+    multMatrix(modelMatrix,aux);
+    setModelMatrix();
+}
+
 void scale(float x, float y, float z)
 {
     float aux[16];
